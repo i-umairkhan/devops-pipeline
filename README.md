@@ -1,53 +1,130 @@
-# BoardgameListingWebApp
+# devops-pipeline
+A secure DevOps pipeline setup on Jenkins with monitoring on AWS.
+___
+# Phase 1
+## Seeting up EC2 instances
+- Created a new EC2 security group `devops-pipeline-security-group` and added following inbloud rules.
 
-## Description
+![image](https://github.com/i-umairkhan/devops-pipeline/assets/81556052/09888a75-c884-4bff-9dc5-53d23f5d88c2)
 
-**Board Game Database Full-Stack Web Application.**
-This web application displays lists of board games and their reviews. While anyone can view the board game lists and reviews, they are required to log in to add/ edit the board games and their reviews. The 'users' have the authority to add board games to the list and add reviews, and the 'managers' have the authority to edit/ delete the reviews on top of the authorities of users.  
+- Created 3 EC2 `t2.medium` instances in K8s cluster in default `-` VPC, `devops-pipeline-security-group` security group, 25 GB storage and Ubuntu image.
 
-## Technologies
+![image](https://github.com/i-umairkhan/devops-pipeline/assets/81556052/918b0831-31c0-4525-ae7f-c6447d4da296)
 
-- Java
-- Spring Boot
-- Amazon Web Services(AWS) EC2
-- Thymeleaf
-- Thymeleaf Fragments
-- HTML5
-- CSS
-- JavaScript
-- Spring MVC
-- JDBC
-- H2 Database Engine (In-memory)
-- JUnit test framework
-- Spring Security
-- Twitter Bootstrap
-- Maven
+# Initializing K8S cluster with Kubeadm
+- SSH into all three nodes using key.
+- On Master Node run following commands.
+```
+sudo apt update
 
-## Features
+sudo apt install docker.io -y
+sudo chmod 666 /var/run/docker.sock
 
-- Full-Stack Application
-- UI components created with Thymeleaf and styled with Twitter Bootstrap
-- Authentication and authorization using Spring Security
-  - Authentication by allowing the users to authenticate with a username and password
-  - Authorization by granting different permissions based on the roles (non-members, users, and managers)
-- Different roles (non-members, users, and managers) with varying levels of permissions
-  - Non-members only can see the boardgame lists and reviews
-  - Users can add board games and write reviews
-  - Managers can edit and delete the reviews
-- Deployed the application on AWS EC2
-- JUnit test framework for unit testing
-- Spring MVC best practices to segregate views, controllers, and database packages
-- JDBC for database connectivity and interaction
-- CRUD (Create, Read, Update, Delete) operations for managing data in the database
-- Schema.sql file to customize the schema and input initial data
-- Thymeleaf Fragments to reduce redundancy of repeating HTML elements (head, footer, navigation)
+sudo apt install -y apt-transport-https ca-certificates curl
+sudo mkdir -p -m 755 /otc/apt/keyrings
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.28/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.28/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
 
-## How to Run
+sudo apt update
+sudo apt install -y kubeadm=1.28.1-1.1 kubelet=1.28.1-1.1 kubectl=1.28.1-1.1
 
-1. Clone the repository
-2. Open the project in your IDE of choice
-3. Run the application
-4. To use initial user data, use the following credentials.
-  - username: bugs    |     password: bunny (user role)
-  - username: daffy   |     password: duck  (manager role)
-5. You can also sign-up as a new user and customize your role to play with the application! 😊
+sudo kubeadm init --pod-network13~-cidr=10.244.0.0/16
+
+# Save join command for furthur use to join worker nodes.
+
+mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v0.49.0/deploy/static/provider/baremetal/deploy.yaml
+```
+- On Worker nodes run following commands
+```
+sudo apt update
+
+sudo apt install docker.io -y
+sudo chmod 666 /var/run/docker.sock
+
+sudo apt install -y apt-transport-https ca-certificates curl
+sudo mkdir -p -m 755 /otc/apt/keyrings
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.28/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.28/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
+
+sudo apt update
+sudo apt install -y kubeadm=1.28.1-1.1 kubelet=1.28.1-1.1 kubectl=1.28.1-1.1
+
+sudo kubeadm join 172.31.49.24:6443 --token jstyvd.ofqbdvue9jql4rp8 --discovery-token-ca-cert-hash sha256:686fc231f2995847cfefc13c42528af5eb4c0069c260dfe9d5ba9c5b28ba8ad2
+```
+## Security scan of K8s cluster with kubeaudit
+- Run following commands on Master
+```
+wget https://github.com/Shopify/kubeaudit/releases/download/v0.22.1/kubeaudit_0.22.1_linux_386.tar.gz
+tar -xzf kubeaudit_0.22.1_linux_386.tar.gz
+sudo mv kubeaudit /usr/local/bin/
+kubeaudit all
+```
+## Instance setup for SonarQube and Nexus
+- Created 2 EC2 `t2.medium` instances in default `-` VPC, `devops-pipeline-security-group` security group, 20 GB storage and Ubuntu image.
+
+- Created an EC2 `t2.large` instances in default `-` VPC, `devops-pipeline-security-group` security group, 30 GB storage and Ubuntu image.
+
+![image](https://github.com/i-umairkhan/devops-pipeline/assets/81556052/b9eb4db3-1f93-4ae8-b6eb-dfb0a9de7ea0)
+
+
+- Run following commands on SonarQube and Nexus instance to install docker.
+```
+# Add Docker's official GPG key:
+sudo apt-get update
+sudo apt-get install ca-certificates curl
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+sudo chmod a+r /etc/apt/keyrings/docker.asc
+
+# Add the repository to Apt sources:
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo apt-get update
+sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+# Give all users permissions to runs docker
+sudo chmod 666 /var/run/docker.sock
+```
+- On SonarQube instance run sonarqube docker container  `docker run -d --name sonar -p 9000:9000 sonarqube:lts-community`
+
+- On Nexus instance run nexus container  `docker run -d --name nexus -p 8081:8081 sonatype/nexus3`
+
+- On Jenkins instance install Java, Jenkins and Docker using commands below.
+```
+sudo apt update
+sudo apt install openjdk-17-jre-headless
+
+sudo wget -O /usr/share/keyrings/jenkins-keyring.asc \
+https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
+echo "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc]" \
+  https://pkg.jenkins.io/debian-stable binary/ | sudo tee \
+  /etc/apt/sources.list.d/jenkins.list > /dev/null
+sudo apt-get update
+sudo apt-get install jenkins
+
+  sudo apt-get update
+sudo apt-get install ca-certificates curl
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+sudo chmod a+r /etc/apt/keyrings/docker.asc
+
+# Add the repository to Apt sources:
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo apt-get update
+sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+# Give all users permissions to runs docker
+sudo chmod 666 /var/run/docker.sock
+```
+- Login to SonarQube, Nexus and Jenkins and change default passwords.
+  - Jenkins Port: 8080
+  - SonarQube Port: 9000
+  - Nexus Port: 8081
