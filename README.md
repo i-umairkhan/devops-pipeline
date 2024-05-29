@@ -128,3 +128,27 @@ sudo chmod 666 /var/run/docker.sock
   - Jenkins Port: 8080
   - SonarQube Port: 9000
   - Nexus Port: 8081
+# Phase 2
+## Jenkins Plugins Installation 
+- Install all suggested Jenkins plugins.
+- Install following pliugins:
+  - Eclipse Temurin installer
+  - Config File Provider
+  - Pipeline Maven Integration
+  - SonarQube Scanner
+  - Docker
+  - Docker Pipeline
+  - docker-build-step
+  - Kubernetes
+  - Kubernetes Client API
+  - Kubernetes Credentials
+  - Kubernetes CLI
+## Jenkins Plugins Configuration
+- Do following plugins/tools configuration
+
+![image](https://github.com/i-umairkhan/devops-pipeline/assets/81556052/e7e39a5a-943c-40cc-8ecf-985a5e721a3c)
+
+![image](https://github.com/i-umairkhan/devops-pipeline/assets/81556052/5b78a445-7e72-4f3e-9707-f41558779d25)
+
+![image](https://github.com/i-umairkhan/devops-pipeline/assets/81556052/543b14b2-fe63-48f7-a3dd-4725c5391898)
+
