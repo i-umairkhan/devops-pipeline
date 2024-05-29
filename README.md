@@ -148,7 +148,57 @@ sudo chmod 666 /var/run/docker.sock
 
 ![image](https://github.com/i-umairkhan/devops-pipeline/assets/81556052/e7e39a5a-943c-40cc-8ecf-985a5e721a3c)
 
+![image](https://github.com/i-umairkhan/devops-pipeline/assets/81556052/db16225f-16e4-482e-aaf0-322d00d65b8f)
+
 ![image](https://github.com/i-umairkhan/devops-pipeline/assets/81556052/5b78a445-7e72-4f3e-9707-f41558779d25)
 
 ![image](https://github.com/i-umairkhan/devops-pipeline/assets/81556052/543b14b2-fe63-48f7-a3dd-4725c5391898)
+
+## Pipeline configuration
+- Create a credential `git-cred` in Jenkins cradentials for clonning git repo.
+- Create a token in sonarqube `sonar-token` and add it in Jenkins credentials with name `sonar-token`.
+- In manage Jenkins system add SonarQube server `sonar` with public IP of sonarqube instance and give it `sonar-token` as a credential.
+- Create a webhook in SonarQube for Jenkins.
+
+  ![image](https://github.com/i-umairkhan/devops-pipeline/assets/81556052/2b52eddc-46b8-4727-8f05-47ca3acc593d)
+
+- Copy `maven-releases` and `maven-snapshots` URL form nexus and add in `pom.xml`.
+```
+<distributionManagement>
+   <repository>
+      <id>maven-releases</id>
+        <url>http://52.91.117.197:8081/repository/maven-releases/</url>
+   </repository>
+	<snapshotRepository>
+      <id>maven-snapshots</id>
+        <url>http://52.91.117.197:8081/repository/maven-snapshots//</url>
+   </snapshotRepository>
+</distributionManagement>
+```
+- Create a Global maven setting in Mnaged files section and add following:
+```
+    <server>
+      <id>maven-releases</id>
+      <username>admin</username>
+      <password>umair123</password>
+    </server>
+    
+     <server>
+      <id>maven-snapshots</id>
+      <username>admin</username>
+      <password>umair123</password>
+    </server>
+```
+- Add dockerhub credentials `docker-cred` in Jenkins.
+- 
+- Install triry on Jenkins server.
+```
+sudo apt-get install wget apt-transport-https gnupg
+wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | gpg --dearmor | sudo tee /usr/share/keyrings/trivy.gpg > /dev/null
+echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb generic main" | sudo tee -a /etc/apt/sources.list.d/trivy.list
+sudo apt-get update
+sudo apt-get install trivy
+```
+- Create a Pipeline `devops-pipeline` and add max number of builds to 2.
+- 
 
