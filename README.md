@@ -11,7 +11,7 @@ ___
 
 ![image](https://github.com/i-umairkhan/devops-pipeline/assets/81556052/918b0831-31c0-4525-ae7f-c6447d4da296)
 
-# Initializing K8S cluster with Kubeadm
+## Initializing K8S cluster with Kubeadm
 - SSH into all three nodes using key.
 - On Master Node run following commands.
 ```
